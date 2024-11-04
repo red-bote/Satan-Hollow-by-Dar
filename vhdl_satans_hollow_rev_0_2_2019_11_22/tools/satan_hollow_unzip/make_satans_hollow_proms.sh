@@ -40,3 +40,6 @@ cat sh-fg.00  sh-fg.01  sh-fg.02  sh-fg.03 > satans_hollow_sp_bits.bin
 
 ./make_vhdl_prom 82s123.12d midssio_82s123.vhd
 
+rm satans_hollow_cpu.bin
+rm satans_hollow_sound_cpu.bin
+rm satans_hollow_sp_bits.bin

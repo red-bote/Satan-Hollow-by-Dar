@@ -155,6 +155,9 @@ Vivado unchanged.
 - Inputs (PS/2, joystick, buttons) through 2-FF synchronizers on the core clock: two
   flip-flops in series per asynchronous input (`*_meta`, `*_s`, `ASYNC_REG`), so a
   metastable first stage has a clock period to settle before the core samples it.
+- Slide switches are not synchronized: sw14/sw15 drive the PmodAMP2 pins directly (no
+  clocked logic); sw13 and the DIP switches are static settings, changed with the game
+  idle.
 - Pmod headers: Atari joystick on JXADC pins 1/2/3/4/7 = right/left/down/up/fire
   (wrapper port `JXADC(4 downto 0)`, active low, XDC pull-ups); PmodAMP2 on JA pins
   1/2/4 = AIN/GAIN/SHUTD. A game without a direction uses that pin for an extra button.

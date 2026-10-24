@@ -1,45 +1,27 @@
 #!/bin/bash
-# Converted from make_satans_hollow_proms.bat
-# 11/2024 Red~Bote (Glenn Neidermeier)
+# Port of make_satans_hollow_proms.bat for the Basys3 build. Run from this
+# directory (the unzipped shollow.zip) by contrib/tools/roms.sh, which sets:
+#   MAKE_VHDL_PROM  path of the compiled make_vhdl_prom
+#   PROM_DIR        output directory for the PROM VHDL
+# make_vhdl_prom names the entity after its output argument, so it runs inside
+# PROM_DIR with bare output file names. The SSIO color PROM is read under its
+# MAME name 82s123.12d (the .bat: midssio_82s123.12d, same CRC e1281ee9).
 
-#
-#rem midssio_82s123.12d CRC e1281ee9
-#
-#rem sh-pro.00 CRC 95e2b800
-#rem sh-pro.01 CRC b99f6ff8
-#rem sh-pro.02 CRC 1202c7b2
-#rem sh-pro.03 CRC 0a64afb9
-#rem sh-pro.04 CRC 22fa9175
-#rem sh-pro.05 CRC 1716e2bb
-#
-#rem sh-snd.01 CRC 55a297cc
-#rem sh-snd.02 CRC 46fc31f6
-#rem sh-snd.03 CRC b1f4a6a8
-#
-#rem sh-bg.00  CRC 3e2b333c
-#rem sh-bg.01  CRC d1d70cc4
-#
-#rem sh-fg.00  CRC 33f4554e
-#rem sh-fg.01  CRC ba1a38b4
-#rem sh-fg.02  CRC 6b57f6da
-#rem sh-fg.03  CRC 37ea9d07
+set -euo pipefail
 
-cat sh-pro.00  sh-pro.01  sh-pro.02  sh-pro.03  sh-pro.04  sh-pro.05 > satans_hollow_cpu.bin
-./make_vhdl_prom satans_hollow_cpu.bin satans_hollow_cpu.vhd
+: "${MAKE_VHDL_PROM:?}" "${PROM_DIR:?}"
+roms="$(pwd)"
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
 
-cat sh-snd.01  sh-snd.02 sh-snd.03 > satans_hollow_sound_cpu.bin
-./make_vhdl_prom satans_hollow_sound_cpu.bin satans_hollow_sound_cpu.vhd
+cat sh-pro.00 sh-pro.01 sh-pro.02 sh-pro.03 sh-pro.04 sh-pro.05 > "$tmp/satans_hollow_cpu.bin"
+cat sh-snd.01 sh-snd.02 sh-snd.03 > "$tmp/satans_hollow_sound_cpu.bin"
+cat sh-fg.00 sh-fg.01 sh-fg.02 sh-fg.03 > "$tmp/satans_hollow_sp_bits.bin"
 
-./make_vhdl_prom sh-bg.00 satans_hollow_bg_bits_1.vhd
-./make_vhdl_prom sh-bg.01 satans_hollow_bg_bits_2.vhd 
-
-
-cat sh-fg.00  sh-fg.01  sh-fg.02  sh-fg.03 > satans_hollow_sp_bits.bin
-
-./make_vhdl_prom satans_hollow_sp_bits.bin satans_hollow_sp_bits.vhd
-
-./make_vhdl_prom 82s123.12d midssio_82s123.vhd
-
-rm satans_hollow_cpu.bin
-rm satans_hollow_sound_cpu.bin
-rm satans_hollow_sp_bits.bin
+cd "$PROM_DIR"
+"$MAKE_VHDL_PROM" "$tmp/satans_hollow_cpu.bin"       satans_hollow_cpu.vhd
+"$MAKE_VHDL_PROM" "$tmp/satans_hollow_sound_cpu.bin" satans_hollow_sound_cpu.vhd
+"$MAKE_VHDL_PROM" "$roms/sh-bg.00"                   satans_hollow_bg_bits_1.vhd
+"$MAKE_VHDL_PROM" "$roms/sh-bg.01"                   satans_hollow_bg_bits_2.vhd
+"$MAKE_VHDL_PROM" "$tmp/satans_hollow_sp_bits.bin"   satans_hollow_sp_bits.vhd
+"$MAKE_VHDL_PROM" "$roms/82s123.12d"                 midssio_82s123.vhd

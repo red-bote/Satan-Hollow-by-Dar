@@ -1,0 +1,523 @@
+--- a/vhdl_satans_hollow_rev_0_2_2019_11_22/rtl_dar/satans_hollow_de10_lite.vhd
++++ b/vhdl_satans_hollow_rev_0_2_2019_11_22/basys3/satans_hollow_basys3.srcs/sources_1/new/satans_hollow_basys3.vhd
+@@ -1,54 +1,56 @@
+ ---------------------------------------------------------------------------------
+--- DE10_lite Top level for Satan Hollow (Midway MCR) by Dar (darfpga@aol.fr) (19/10/2019)
+--- http://darfpga.blogspot.fr
++-- Basys 3 top level for Satan's Hollow by Red~Bote, derived from
++-- satans_hollow_de10_lite.vhd by Dar (darfpga@aol.fr,
++-- http://darfpga.blogspot.fr); see that file for its history.
+ ---------------------------------------------------------------------------------
+--- release rev 02 : add TV 15kHz mode
+---  (2019/11/22)    use merged sprite 8bits roms (make it easier to externalize)
+ --
+--- release rev 01 : improve ssio read input (fix mirror addressing)
+---                  improve memory access (fix mirror addressing)
++-- release rev 01 : initial Basys 3 release
++--  (23/10/2026)
+ --
+--- release rev 00 : initial release
+ ---------------------------------------------------------------------------------
+ -- Educational use only
+ -- Do not redistribute synthetized file with roms
+ -- Do not redistribute roms whatever the form
+ -- Use at your own risk
+ ---------------------------------------------------------------------------------
+--- Use satan_hollow_de10_lite.sdc to compile (Timequest constraints)
+--- /!\
+--- Don't forget to set device configuration mode with memory initialization
+---  (Assignments/Device/Pin options/Configuration mode)
+----------------------------------------------------------------------------------
+ --
+ -- Main features :
+---  PS2 keyboard input @gpio pins 35/34 (beware voltage translation/protection)
+---  Audio pwm output   @gpio pins 1/3 (beware voltage translation/protection)
++--  PS2 keyboard input @onboard USB HID (PS/2 emulation)
++--  Joystick input     @JXADC pins 1/2/3/7 = right/left/shield/fire (active low)
++--  Audio pwm output   @PmodAMP2 on JA pins 1/2/4 (left channel, mixed);
++--                     sw15 = audio disable, sw14 = gain
+ --
+ --  Video         : VGA 31kHz/60Hz and TV 15kHz
+ --  Cocktail mode : NO
+ --  Sound         : OK
+ --
+--- For hardware schematic see my other project : NES
++-- Uses 1 MMCM (clk_wiz_0) for 40MHz from 100MHz
+ --
+--- Uses 1 pll 40MHz from 50MHz to make 20MHz and 8Mhz
++-- Board buttons :
++--   btnC : reset game
++--   btnU : Add coin 1
++--   btnD : Add coin 2
++--   btnL : Start 1 player
++--   btnR : Start 2 players
+ --
+--- Board key :
+---   0 : reset game
++-- Board switches :
++--   sw11 : coin meters dip, sw12 : cocktail dip (down = default '0', up inverts;
++--          cocktail marked "KO atm" in the source)
++--   sw13 : 0 = 31kHz VGA, 1 = 15kHz TV (csync on hs)
+ --
+--- Keyboard players inputs :
++-- Keyboard players inputs (MAME defaults) :
+ --
+---   F1 : Add coin
+---   F2 : Start 1 player
+---   F3 : Start 2 players
+---   F5 : Sevice mode ON/OFF
+---   SPACE       : fire
++--   5 : Add coin 1
++--   6 : Add coin 2
++--   1 : Start 1 player
++--   2 : Start 2 players
++--   F2 : toggle service mode ON/OFF
++--   LEFT CTRL   : fire
++--   LEFT ALT    : shield
+ --   RIGHT arrow : move right
+ --   LEFT  arrow : move left
+---   UP    arrow : shield
+ --
+ -- Other details : see satans_hollow.vhd
+--- For USB inputs and SGT5000 audio output see my other project: xevious_de10_lite
+ ---------------------------------------------------------------------------------
+ 
+ library ieee;
+@@ -57,65 +59,40 @@
+ use ieee.numeric_std.all;
+ 
+ library work;
+---use work.usb_report_pkg.all;
+ 
+-entity satans_hollow_de10_lite is
++entity satans_hollow_basys3 is
+ port(
+-  max10_clk1_50  : in std_logic;
+--- max10_clk2_50  : in std_logic;
+--- adc_clk_10     : in std_logic;
+-  ledr           : out std_logic_vector(9 downto 0);
+-  key            : in std_logic_vector(1 downto 0);
+-  sw             : in std_logic_vector(9 downto 0);
+-
+--- dram_ba    : out std_logic_vector(1 downto 0);
+--- dram_ldqm  : out std_logic;
+--- dram_udqm  : out std_logic;
+--- dram_ras_n : out std_logic;
+--- dram_cas_n : out std_logic;
+--- dram_cke   : out std_logic;
+--- dram_clk   : out std_logic;
+--- dram_we_n  : out std_logic;
+--- dram_cs_n  : out std_logic;
+--- dram_dq    : inout std_logic_vector(15 downto 0);
+--- dram_addr  : out std_logic_vector(12 downto 0);
+-
+-  hex0 : out std_logic_vector(7 downto 0);
+-  hex1 : out std_logic_vector(7 downto 0);
+-  hex2 : out std_logic_vector(7 downto 0);
+-  hex3 : out std_logic_vector(7 downto 0);
+--- hex4 : out std_logic_vector(7 downto 0);
+--- hex5 : out std_logic_vector(7 downto 0);
++  clk            : in std_logic;
++  btnC           : in std_logic;
++  btnU           : in std_logic;
++  btnD           : in std_logic;
++  btnL           : in std_logic;
++  btnR           : in std_logic;
++  sw             : in std_logic_vector(15 downto 0);
+ 
+   vga_r     : out std_logic_vector(3 downto 0);
+   vga_g     : out std_logic_vector(3 downto 0);
+   vga_b     : out std_logic_vector(3 downto 0);
+-  vga_hs    : inout std_logic;
+-  vga_vs    : inout std_logic;
+-
+--- gsensor_cs_n : out   std_logic;
+--- gsensor_int  : in    std_logic_vector(2 downto 0);
+--- gsensor_sdi  : inout std_logic;
+--- gsensor_sdo  : inout std_logic;
+--- gsensor_sclk : out   std_logic;
++  vga_hs    : out std_logic;
++  vga_vs    : out std_logic;
+ 
+--- arduino_io      : inout std_logic_vector(15 downto 0);
+--- arduino_reset_n : inout std_logic;
+-
+-  gpio          : inout std_logic_vector(35 downto 0)
++  JXADC            : in  std_logic_vector(4 downto 0);
++  ps2_clk          : in  std_logic;
++  ps2_dat          : in  std_logic;
++  O_PMODAMP2_AIN   : out std_logic;
++  O_PMODAMP2_GAIN  : out std_logic;
++  O_PMODAMP2_SHUTD : out std_logic
+ );
+-end satans_hollow_de10_lite;
++end satans_hollow_basys3;
+ 
+-architecture struct of satans_hollow_de10_lite is
++architecture struct of satans_hollow_basys3 is
+ 
+   signal clock_40  : std_logic;
+-  signal clock_kbd : std_logic;
+   signal reset     : std_logic;
++  signal mmcm_locked : std_logic;
+ 
+   signal clock_div : std_logic_vector(3 downto 0);
+ 
+-  -- signal max3421e_clk : std_logic;
+-
+   signal r         : std_logic_vector(2 downto 0);
+   signal g         : std_logic_vector(2 downto 0);
+   signal b         : std_logic_vector(2 downto 0);
+@@ -128,50 +105,66 @@
+   signal audio_l           : std_logic_vector(15 downto 0);
+   signal audio_r           : std_logic_vector(15 downto 0);
+   signal pwm_accumulator_l : std_logic_vector(17 downto 0);
+-  signal pwm_accumulator_r : std_logic_vector(17 downto 0);
+ 
+-  alias reset_n         : std_logic is key(0);
+-  alias ps2_clk         : std_logic is gpio(35); --gpio(0);
+-  alias ps2_dat         : std_logic is gpio(34); --gpio(1);
+-  alias pwm_audio_out_l : std_logic is gpio(1);  --gpio(2);
+-  alias pwm_audio_out_r : std_logic is gpio(3);  --gpio(3);
++  -- 2-FF synchronizers for the asynchronous inputs
++  signal ps2_clk_meta, ps2_clk_s : std_logic := '1';
++  signal ps2_dat_meta, ps2_dat_s : std_logic := '1';
++  signal jxadc_meta, jxadc_s     : std_logic_vector(4 downto 0) := (others => '1');
++  signal btn_meta, btn_s         : std_logic_vector(3 downto 0) := (others => '0'); -- U, D, L, R
++  attribute ASYNC_REG : string;
++  attribute ASYNC_REG of ps2_clk_meta, ps2_clk_s, ps2_dat_meta, ps2_dat_s : signal is "TRUE";
++  attribute ASYNC_REG of jxadc_meta, jxadc_s, btn_meta, btn_s : signal is "TRUE";
+ 
+   signal kbd_intr       : std_logic;
+   signal kbd_scancode   : std_logic_vector(7 downto 0);
++  signal kbd_rel        : std_logic := '0';
++  -- kbd_key : 0 up, 1 down, 2 left, 3 right, 4 left ctrl, 5 left alt,
++  --           6 '1', 7 '2', 8 '5', 9 '6', 10 F2
++  signal kbd_key        : std_logic_vector(10 downto 0) := (others => '0');
++  signal kbd_f2_r       : std_logic := '0';
++  signal service        : std_logic := '0'; -- toggled by F2
+   signal joy_BBBBFRLDU  : std_logic_vector(8 downto 0);
+-  signal fn_pulse       : std_logic_vector(7 downto 0);
+-  signal fn_toggle      : std_logic_vector(7 downto 0);
+-
+-  -- signal vga_s_r        : std_logic;
+-  -- signal spin_count     : std_logic_vector(9 downto 0);
+-
+-  -- signal start : std_logic := '0';
+-  -- signal usb_report : usb_report_t;
+-  -- signal new_usb_report : std_logic := '0';
+-
+-  signal dbg_cpu_addr : std_logic_vector(15 downto 0);
++  signal coin1_in       : std_logic;
++  signal coin2_in       : std_logic;
++  signal start1_in      : std_logic;
++  signal start2_in      : std_logic;
++
++  constant COIN_METERS_DEFAULT : std_logic := '0';
++  constant COCKTAIL_DEFAULT    : std_logic := '0';
++  signal coin_meters_in        : std_logic;
++  signal cocktail_in           : std_logic;
+ 
+ begin
+ 
+-  reset <= not reset_n;
++  -- btnC resets the MMCM; the core is held in reset until the MMCM locks
++  reset <= btnC or not mmcm_locked;
+ 
+-  tv15Khz_mode <= not fn_toggle(7); -- F8
+-
+-  --arduino_io not used pins
+-  --arduino_io(7) <= '1'; -- to usb host shield max3421e RESET
+-  --arduino_io(8) <= 'Z'; -- from usb host shield max3421e GPX
+-  --arduino_io(9) <= 'Z'; -- from usb host shield max3421e INT
+-  --arduino_io(13) <= 'Z'; -- not used
+-  --arduino_io(14) <= 'Z'; -- not used
++  tv15Khz_mode <= sw(13);
++  -- dips on spare switches, down = default, up inverts the bit
++  coin_meters_in <= COIN_METERS_DEFAULT xor sw(11);
++  cocktail_in    <= COCKTAIL_DEFAULT xor sw(12);
+ 
+   -- Clock 40MHz for kick core and sound_board
+-  clocks : entity work.max10_pll_40M
++  clocks : entity work.clk_wiz_0
+   port map(
+-    inclk0 => max10_clk1_50,
+-    c0 => clock_40,
+-    locked => open --pll_locked
++    clk_in1  => clk,
++    clk_out1 => clock_40,
++    reset    => btnC,
++    locked   => mmcm_locked
+   );
+ 
++  -- synchronize asynchronous inputs to the core clock
++  process(clock_40)
++  begin
++    if rising_edge(clock_40) then
++      ps2_clk_meta <= ps2_clk;      ps2_clk_s <= ps2_clk_meta;
++      ps2_dat_meta <= ps2_dat;      ps2_dat_s <= ps2_dat_meta;
++      jxadc_meta   <= JXADC;        jxadc_s   <= jxadc_meta;
++      btn_meta     <= btnU & btnD & btnL & btnR;
++      btn_s        <= btn_meta;
++    end if;
++  end process;
++
+   -- Satans hollow
+   satans_hollow : entity work.satans_hollow
+   port map(
+@@ -187,31 +180,31 @@
+     video_hs     => hsync,
+     video_vs     => vsync,
+ 
+-    separate_audio => fn_toggle(4), -- F5
++    separate_audio => '0', -- mixed : mono amp on the left channel
+     audio_out_l    => audio_l,
+     audio_out_r    => audio_r,
+ 
+-    coin1          => fn_pulse(0), -- F1
+-    coin2          => '0',
+-    start1         => fn_pulse(1), -- F2
+-    start2         => fn_pulse(2), -- F3
++    coin1          => coin1_in,
++    coin2          => coin2_in,
++    start1         => start1_in,
++    start2         => start2_in,
+ 
+     left           => joy_BBBBFRLDU(2), -- left
+     right          => joy_BBBBFRLDU(3), -- right
+-    fire1          => joy_BBBBFRLDU(4), -- space
+-    fire2          => joy_BBBBFRLDU(0), -- up
++    fire1          => joy_BBBBFRLDU(4), -- left ctrl : fire
++    fire2          => joy_BBBBFRLDU(0), -- left alt  : shield
+ 
+     left_c         => joy_BBBBFRLDU(2), -- left
+     right_c        => joy_BBBBFRLDU(3), -- right
+-    fire1_c        => joy_BBBBFRLDU(4), -- space
+-    fire2_c        => joy_BBBBFRLDU(0), -- up
++    fire1_c        => joy_BBBBFRLDU(4), -- left ctrl : fire
++    fire2_c        => joy_BBBBFRLDU(0), -- left alt  : shield
+ 
+-    coin_meters    => '0',
+-    cocktail       => '0',  -- fn_toggle(6), -- F7 -- KO atm
++    coin_meters    => coin_meters_in,
++    cocktail       => cocktail_in,    -- KO atm in the source
+ 
+-    service        => fn_toggle(4), -- F5 -- (allow machine settings access)
++    service        => service, -- F2 (allow machine settings access)
+ 
+-    dbg_cpu_addr => dbg_cpu_addr
++    dbg_cpu_addr => open
+   );
+ 
+   -- adapt video to 4bits/color only and blank
+@@ -228,19 +221,15 @@
+   -- vga_vs <= vsync;
+   vga_vs <= '1'   when tv15Khz_mode = '1' else vsync;
+ 
+-  --sound_string <= "00" & audio & "000" & "00" & audio & "000";
+-
+-  -- get scancode from keyboard
++  -- clock divider for the pwm sound output
+   process (reset, clock_40)
+   begin
+     if reset='1' then
+       clock_div <= (others => '0');
+-      clock_kbd  <= '0';
+     else
+       if rising_edge(clock_40) then
+         if clock_div = "1001" then
+           clock_div <= (others => '0');
+-          clock_kbd  <= not clock_kbd;
+         else
+           clock_div <= clock_div + '1';
+         end if;
+@@ -248,125 +237,59 @@
+     end if;
+   end process;
+ 
++  -- get scancode from keyboard
+   keyboard : entity work.io_ps2_keyboard
+   port map (
+-    clk       => clock_kbd, -- synchrounous clock with core
+-    kbd_clk   => ps2_clk,
+-    kbd_dat   => ps2_dat,
++    clk       => clock_40, -- synchrounous clock with core
++    kbd_clk   => ps2_clk_s,
++    kbd_dat   => ps2_dat_s,
+     interrupt => kbd_intr,
+     scancode  => kbd_scancode
+   );
+ 
+-  -- translate scancode to joystick
+-  joystick : entity work.kbd_joystick
+-  port map (
+-    clk           => clock_kbd, -- synchrounous clock with core
+-    kbdint        => kbd_intr,
+-    kbdscancode   => std_logic_vector(kbd_scancode),
+-    joy_BBBBFRLDU => joy_BBBBFRLDU,
+-    fn_pulse      => fn_pulse,
+-    fn_toggle     => fn_toggle
+-  );
+-
++  -- translate scancode to keys (MAME default keys, PS/2 set 2 codes)
++  -- F0 marks a release; E0 is ignored, as in kbd_joystick (keypad 8/2/4/6
++  -- also act as arrows, Right Ctrl/Alt as Left Ctrl/Alt).
++  process(clock_40)
++  begin
++    if rising_edge(clock_40) then
++      if kbd_intr = '1' then
++        if kbd_scancode = x"F0" then
++          kbd_rel <= '1';
++        elsif kbd_scancode /= x"E0" then
++          kbd_rel <= '0';
++          if kbd_scancode = x"75" then kbd_key(0)  <= not kbd_rel; end if; -- up arrow
++          if kbd_scancode = x"72" then kbd_key(1)  <= not kbd_rel; end if; -- down arrow
++          if kbd_scancode = x"6B" then kbd_key(2)  <= not kbd_rel; end if; -- left arrow
++          if kbd_scancode = x"74" then kbd_key(3)  <= not kbd_rel; end if; -- right arrow
++          if kbd_scancode = x"14" then kbd_key(4)  <= not kbd_rel; end if; -- left ctrl
++          if kbd_scancode = x"11" then kbd_key(5)  <= not kbd_rel; end if; -- left alt
++          if kbd_scancode = x"16" then kbd_key(6)  <= not kbd_rel; end if; -- 1
++          if kbd_scancode = x"1E" then kbd_key(7)  <= not kbd_rel; end if; -- 2
++          if kbd_scancode = x"2E" then kbd_key(8)  <= not kbd_rel; end if; -- 5
++          if kbd_scancode = x"36" then kbd_key(9)  <= not kbd_rel; end if; -- 6
++          if kbd_scancode = x"06" then kbd_key(10) <= not kbd_rel; end if; -- F2
++        end if;
++      end if;
++      -- F2 toggles service mode on press (typematic repeat ignored)
++      kbd_f2_r <= kbd_key(10);
++      if kbd_f2_r = '0' and kbd_key(10) = '1' then
++        service <= not service;
++      end if;
++    end if;
++  end process;
+ 
+-  -- usb host for max3421e arduino shield (modified)
+-  --max3421e_clk <= clock_11;
+-  --usb_host : entity work.usb_host_max3421e
+-  --port map(
+-  -- clk     => max3421e_clk,
+-  -- reset   => reset,
+-  -- start   => start,
+-  --
+-  -- usb_report => usb_report,
+-  -- new_usb_report => new_usb_report,
+-  --
+-  -- spi_cs_n  => arduino_io(10),
+-  -- spi_clk   => arduino_io(13),
+-  -- spi_mosi  => arduino_io(11),
+-  -- spi_miso  => arduino_io(12)
+-  --);
+-
+-  -- usb keyboard report decoder
+-
+-  --keyboard_decoder : entity work.usb_keyboard_decoder
+-  --port map(
+-  -- clk     => max3421e_clk,
+-  --
+-  -- usb_report => usb_report,
+-  -- new_usb_report => new_usb_report,
+-  --
+-  -- joyBCPPFRLDU  => joyBCPPFRLDU
+-  --);
+-
+-  -- usb joystick decoder (konix drakkar wireless)
+-
+-  --joystick_decoder : entity work.usb_joystick_decoder
+-  --port map(
+-  -- clk     => max3421e_clk,
+-  --
+-  -- usb_report => usb_report,
+-  -- new_usb_report => new_usb_report,
+-  --
+-  -- joyBCPPFRLDU  => open --joyBCPPFRLDU
+-  --);
+-
+-  -- debug display
+-
+-  --ledr(8 downto 0) <= joyBCPPFRLDU;
+-  --
+-  h0 : entity work.decodeur_7_seg port map(dbg_cpu_addr( 3 downto  0),hex0);
+-  h1 : entity work.decodeur_7_seg port map(dbg_cpu_addr( 7 downto  4),hex1);
+-  h2 : entity work.decodeur_7_seg port map(dbg_cpu_addr(11 downto  8),hex2);
+-  h3 : entity work.decodeur_7_seg port map(dbg_cpu_addr(15 downto 12),hex3);
+-  --h4 : entity work.decodeur_7_seg port map(usb_report(to_integer(unsigned(sw))+0)(3 downto 0),hex4);
+-  --h5 : entity work.decodeur_7_seg port map(usb_report(to_integer(unsigned(sw))+0)(7 downto 4),hex5);
+-
+-  -- audio for sgtl5000
+-
+-  --sample_data <= "00" & audio & "000" & "00" & audio & "000";
+-
+-  -- Clock 1us for ym_8910
+-
+-  --p_clk_1us_p : process(max10_clk1_50)
+-  --begin
+-  --	if rising_edge(max10_clk1_50) then
+-  --		if cnt_1us = 0 then
+-  --			cnt_1us  <= 49;
+-  --			clk_1us  <= '1';
+-  --		else
+-  --			cnt_1us  <= cnt_1us - 1;
+-  --			clk_1us <= '0';
+-  --		end if;
+-  --	end if;
+-  --end process;
+-
+-  -- sgtl5000 (teensy audio shield on top of usb host shield)
+-
+-  --e_sgtl5000 : entity work.sgtl5000_dac
+-  --port map(
+-  -- clock_18   => clock_18,
+-  -- reset      => reset,
+-  -- i2c_clock  => clk_1us,
+-  --
+-  -- sample_data  => sample_data,
+-  --
+-  -- i2c_sda   => arduino_io(0), -- i2c_sda,
+-  -- i2c_scl   => arduino_io(1), -- i2c_scl,
+-  --
+-  -- tx_data   => arduino_io(2), -- sgtl5000 tx
+-  -- mclk      => arduino_io(4), -- sgtl5000 mclk
+-  --
+-  -- lrclk     => arduino_io(3), -- sgtl5000 lrclk
+-  -- bclk      => arduino_io(6), -- sgtl5000 bclk
+-  --
+-  -- -- debug
+-  -- hex0_di   => open, -- hex0_di,
+-  -- hex1_di   => open, -- hex1_di,
+-  -- hex2_di   => open, -- hex2_di,
+-  -- hex3_di   => open, -- hex3_di,
+-  --
+-  -- sw => sw(7 downto 0)
+-  --);
++  -- merge keyboard, buttons and JXADC joystick (active low)
++  coin1_in  <= kbd_key(8) or btn_s(3); -- 5 or btnU
++  coin2_in  <= kbd_key(9) or btn_s(2); -- 6 or btnD
++  start1_in <= kbd_key(6) or btn_s(1); -- 1 or btnL
++  start2_in <= kbd_key(7) or btn_s(0); -- 2 or btnR
++  joy_BBBBFRLDU(0) <= kbd_key(5) or not jxadc_s(2); -- shield : left alt (JXADC3)
++  joy_BBBBFRLDU(1) <= '0';
++  joy_BBBBFRLDU(2) <= kbd_key(2) or not jxadc_s(1); -- left  (JXADC2)
++  joy_BBBBFRLDU(3) <= kbd_key(3) or not jxadc_s(0); -- right (JXADC1)
++  joy_BBBBFRLDU(4) <= kbd_key(4) or not jxadc_s(4); -- fire : left ctrl (JXADC7)
++  joy_BBBBFRLDU(8 downto 5) <= "0000";
+ 
+   -- pwm sound output
+   process(clock_40)  -- use same clock as kick_sound_board
+@@ -375,14 +298,13 @@
+ 
+       if clock_div = "0000" then
+         pwm_accumulator_l  <=  ('0'&pwm_accumulator_l(16 downto 0)) + ('0'&audio_l&'0');
+-        pwm_accumulator_r  <=  ('0'&pwm_accumulator_r(16 downto 0)) + ('0'&audio_r&'0');
+       end if;
+ 
+     end if;
+   end process;
+ 
+-  pwm_audio_out_l <= pwm_accumulator_l(17);
+-  pwm_audio_out_r <= pwm_accumulator_r(17);
+-
++  O_PMODAMP2_AIN   <= pwm_accumulator_l(17);
++  O_PMODAMP2_SHUTD <= not sw(15); -- sw15 up = amp shut down (audio disabled)
++  O_PMODAMP2_GAIN  <= not sw(14); -- sw14 up = gain active (GAIN active low)
+ 
+ end struct;

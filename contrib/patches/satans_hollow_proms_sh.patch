@@ -1,0 +1,32 @@
+# New file: make_satans_hollow_proms.sh, a bash port of make_satans_hollow_proms.bat used by
+# contrib/tools/user/roms.sh. Shipped as a patch so that make check reproduces it.
+--- /dev/null
++++ b/vhdl_satans_hollow_rev_0_2_2019_11_22/tools/satan_hollow_unzip/make_satans_hollow_proms.sh
+@@ -0,0 +1,27 @@
++#!/bin/bash
++# Port of make_satans_hollow_proms.bat for the Basys3 build. Run from this
++# directory (the unzipped shollow.zip) by contrib/tools/roms.sh, which sets:
++#   MAKE_VHDL_PROM  path of the compiled make_vhdl_prom
++#   PROM_DIR        output directory for the PROM VHDL
++# make_vhdl_prom names the entity after its output argument, so it runs inside
++# PROM_DIR with bare output file names. The SSIO color PROM is read under its
++# MAME name 82s123.12d (the .bat: midssio_82s123.12d, same CRC e1281ee9).
++
++set -euo pipefail
++
++: "${MAKE_VHDL_PROM:?}" "${PROM_DIR:?}"
++roms="$(pwd)"
++tmp="$(mktemp -d)"
++trap 'rm -rf "$tmp"' EXIT
++
++cat sh-pro.00 sh-pro.01 sh-pro.02 sh-pro.03 sh-pro.04 sh-pro.05 > "$tmp/satans_hollow_cpu.bin"
++cat sh-snd.01 sh-snd.02 sh-snd.03 > "$tmp/satans_hollow_sound_cpu.bin"
++cat sh-fg.00 sh-fg.01 sh-fg.02 sh-fg.03 > "$tmp/satans_hollow_sp_bits.bin"
++
++cd "$PROM_DIR"
++"$MAKE_VHDL_PROM" "$tmp/satans_hollow_cpu.bin"       satans_hollow_cpu.vhd
++"$MAKE_VHDL_PROM" "$tmp/satans_hollow_sound_cpu.bin" satans_hollow_sound_cpu.vhd
++"$MAKE_VHDL_PROM" "$roms/sh-bg.00"                   satans_hollow_bg_bits_1.vhd
++"$MAKE_VHDL_PROM" "$roms/sh-bg.01"                   satans_hollow_bg_bits_2.vhd
++"$MAKE_VHDL_PROM" "$tmp/satans_hollow_sp_bits.bin"   satans_hollow_sp_bits.vhd
++"$MAKE_VHDL_PROM" "$roms/82s123.12d"                 midssio_82s123.vhd

@@ -1,0 +1,23 @@
+# Source archive cache (re-fetched by `make fetch`).
+/dloads/
+
+# Roms and anything generated from them: never commit. The rom staging dir keeps
+# only the upstream scripts/tool and the .sh port.
+*.zip
+/vhdl_*/**/proms/
+/vhdl_*/tools/*_unzip/*
+!/vhdl_*/tools/*_unzip/*.bat
+!/vhdl_*/tools/*_unzip/*.exe
+!/vhdl_*/tools/*_unzip/*.sh
+
+# Vivado outputs.
+/vhdl_*/**/*.cache/
+/vhdl_*/**/*.gen/
+/vhdl_*/**/*.hw/
+/vhdl_*/**/*.ip_user_files/
+/vhdl_*/**/*.runs/
+/vhdl_*/**/*.sim/
+.Xil/
+*.jou
+*.log
+*.str

@@ -1,6 +1,6 @@
 # Basys3 port template: source lifecycle and build
 
-Template for the rb-fpga rework repos (one git repo per machine). Bagman is the reference
+Template for the rb-fpga machine repos (one git repo per machine). Bagman is the reference
 instance; generic files (`Makefile`, `.gitignore`, `LICENSE`, `contrib/tools/`, this spec)
 are identical across repos. Per-machine values live in `machine.conf`.
 

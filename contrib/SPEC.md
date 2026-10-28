@@ -53,6 +53,10 @@ Build, IO, Issues Addressed (one line per patch), Third-party additions (only wh
 scoped to the port's own files and changes; vendor templates (Digilent XDC, Vivado
 project, clk_wiz output) are not named.
 
+README prose (paragraphs, notes): full sentences that name the subject and state the
+reason. Tables, Issues Addressed entries, code comments, patch headers and commit
+messages: terse.
+
 ### 2.1 Sources and provenance
 
 Every file belongs to one of four classes:
